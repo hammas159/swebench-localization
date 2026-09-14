@@ -6,17 +6,15 @@ which files a correct solution touches, which is all the localization experiment
 
 from __future__ import annotations
 
-import glob
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
 
-CACHE_GLOB = (
-    r"C:\Users\dell\.cache\huggingface\hub"
-    r"\datasets--princeton-nlp--SWE-bench_Lite\snapshots\*\data\test-*.parquet"
-)
+HF_REPO = "princeton-nlp/SWE-bench_Lite"
+CACHE_DIR_NAME = "datasets--princeton-nlp--SWE-bench_Lite"
 
 # A unified diff names the file twice; the b/ side is the post-image, which is the
 # one that exists after a fix (the a/ side is /dev/null for added files).
@@ -49,14 +47,52 @@ def gold_files_from_patch(patch: str) -> tuple[str, ...]:
     return tuple(seen)
 
 
-def load(limit: int | None = None) -> list[Instance]:
-    matches = glob.glob(CACHE_GLOB)
-    if not matches:
+def _hf_cache_roots() -> list[Path]:
+    """Every plausible Hugging Face cache location, most specific first.
+
+    Resolved at call time rather than hardcoded: HF_HOME and HF_HUB_CACHE are the
+    documented overrides, and ~/.cache/huggingface/hub is the default on every
+    platform. A hardcoded path only works on the machine that wrote it.
+    """
+    roots = []
+    if env := os.environ.get("HF_HUB_CACHE"):
+        roots.append(Path(env))
+    if env := os.environ.get("HF_HOME"):
+        roots.append(Path(env) / "hub")
+    roots.append(Path.home() / ".cache" / "huggingface" / "hub")
+    return roots
+
+
+def find_parquet() -> Path | None:
+    """Locate the cached test split without importing `datasets`."""
+    for root in _hf_cache_roots():
+        hits = sorted((root / CACHE_DIR_NAME).glob("snapshots/*/data/test-*.parquet"))
+        if hits:
+            return hits[0]
+    return None
+
+
+def _frame() -> pd.DataFrame:
+    """Read the split from cache; fall back to downloading it (1.2 MB)."""
+    cached = find_parquet()
+    if cached is not None:
+        return pd.read_parquet(cached)
+    try:
+        from datasets import load_dataset
+    except ImportError as exc:  # pragma: no cover - depends on the environment
         raise FileNotFoundError(
-            "SWE-bench Lite parquet not found in the HF cache. Expected at:\n"
-            f"  {CACHE_GLOB}"
-        )
-    frame = pd.read_parquet(sorted(matches)[0])
+            f"{HF_REPO} is not in the local Hugging Face cache and `datasets` is not "
+            "installed, so it cannot be fetched.\n"
+            "Fix either one:\n"
+            "  pip install datasets        # then it downloads (~1.2 MB)\n"
+            "  or set HF_HOME / HF_HUB_CACHE to the cache that already holds it.\n"
+            f"Looked in: {', '.join(str(r) for r in _hf_cache_roots())}"
+        ) from exc
+    return load_dataset(HF_REPO, split="test").to_pandas()
+
+
+def load(limit: int | None = None) -> list[Instance]:
+    frame = _frame()
     rows = []
     for _, row in frame.iterrows():
         rows.append(
@@ -81,10 +117,14 @@ if __name__ == "__main__":
     no_gold = [d for d in data if not d.gold_files]
     print(f"no gold file   : {len(no_gold)}")
     counts = [len(d.gold_files) for d in data]
-    print(f"single-file fix: {sum(1 for c in counts if c == 1)} "
-          f"({sum(1 for c in counts if c == 1) / len(data):.1%})")
-    print(f"files per fix  : min {min(counts)}, max {max(counts)}, "
-          f"mean {sum(counts) / len(counts):.2f}")
+    print(
+        f"single-file fix: {sum(1 for c in counts if c == 1)} "
+        f"({sum(1 for c in counts if c == 1) / len(data):.1%})"
+    )
+    print(
+        f"files per fix  : min {min(counts)}, max {max(counts)}, "
+        f"mean {sum(counts) / len(counts):.2f}"
+    )
     print("\nsample gold paths:")
     for d in data[:5]:
         print(f"  {d.instance_id:32} {', '.join(d.gold_files)}")

@@ -1,0 +1,31 @@
+[project]
+name = "swebench-localization"
+version = "0.1.0"
+description = "Over half of SWE-bench Lite never names the file you have to fix. Measuring how much of the benchmark is retrieval, not reasoning."
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",
+    "pyarrow>=15",
+]
+
+[project.optional-dependencies]
+# The dashboard. Kept optional so CI installs neither streamlit nor altair.
+ui = ["streamlit>=1.40", "altair>=5"]
+# Only needed if the dataset is NOT already in the local Hugging Face cache.
+fetch = ["datasets>=2.19"]
+
+[dependency-groups]
+# ruff pinned to a minor range, not ">=": the formatter changes between minor
+# versions, so an open bound means CI reformats differently from the committed
+# version and the Lint step fails on untouched files.
+dev = ["pytest>=8", "ruff>=0.16,<0.17"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.ruff]
+line-length = 100

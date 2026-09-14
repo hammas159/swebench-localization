@@ -24,8 +24,8 @@ def tier_for(inst: Instance, text: str) -> str:
     """Strongest form in which the gold file appears in the text."""
     gold = inst.gold_files[0]
     path = Path(gold)
-    basename = path.name           # separable.py
-    stem = path.stem               # separable
+    basename = path.name  # separable.py
+    stem = path.stem  # separable
 
     # Normalise separators so windows/posix spellings both match.
     haystack = text.replace("\\", "/")
@@ -51,8 +51,10 @@ def report(data: list[Instance], field: str, text_of) -> Counter:
     findable = total - tiers["not_mentioned"]
     print(f"  {'-' * 60}")
     print(f"  mentioned in some form: {findable}/{total} ({findable / total:.1%})")
-    print(f"  NOT mentioned at all  : {tiers['not_mentioned']}/{total} "
-          f"({tiers['not_mentioned'] / total:.1%})  <- retrieval must infer these")
+    print(
+        f"  NOT mentioned at all  : {tiers['not_mentioned']}/{total} "
+        f"({tiers['not_mentioned'] / total:.1%})  <- retrieval must infer these"
+    )
     return tiers
 
 

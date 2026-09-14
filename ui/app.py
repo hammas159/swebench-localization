@@ -21,16 +21,19 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from data import load  # noqa: E402
-from mention_analysis import TIERS, tier_for  # noqa: E402
+from data import load
+from mention_analysis import TIERS, tier_for
 
 st.set_page_config(page_title="SWE-bench localization", layout="wide")
 
 BLUE, AMBER, GREY, RED, GREEN = "#2563eb", "#f59e0b", "#94a3b8", "#dc2626", "#16a34a"
-TIER_COLOR = {"full_path": GREEN, "basename": BLUE, "stem_only": AMBER,
-              "not_mentioned": RED}
-TIER_LABEL = {"full_path": "full path given", "basename": "filename only",
-              "stem_only": "module name only", "not_mentioned": "never mentioned"}
+TIER_COLOR = {"full_path": GREEN, "basename": BLUE, "stem_only": AMBER, "not_mentioned": RED}
+TIER_LABEL = {
+    "full_path": "full path given",
+    "basename": "filename only",
+    "stem_only": "module name only",
+    "not_mentioned": "never mentioned",
+}
 
 
 @st.cache_data
@@ -105,8 +108,10 @@ left, right = st.columns([3, 2])
 with left:
     st.subheader("How the gold file is referenced")
     tier_frame = pd.DataFrame(
-        [{"tier": TIER_LABEL[t], "instances": tiers[t],
-          "share": tiers[t] / total, "key": t} for t in TIERS]
+        [
+            {"tier": TIER_LABEL[t], "instances": tiers[t], "share": tiers[t] / total, "key": t}
+            for t in TIERS
+        ]
     )
     bars = (
         alt.Chart(tier_frame)
@@ -115,7 +120,8 @@ with left:
             x=alt.X("tier:N", sort=[TIER_LABEL[t] for t in TIERS], title=None),
             y=alt.Y("instances:Q", title="instances"),
             color=alt.Color(
-                "key:N", legend=None,
+                "key:N",
+                legend=None,
                 scale=alt.Scale(domain=TIERS, range=[TIER_COLOR[t] for t in TIERS]),
             ),
             tooltip=["tier", "instances", alt.Tooltip("share:Q", format=".1%")],
@@ -129,9 +135,9 @@ with left:
 with right:
     st.subheader("Difficulty tiers")
     st.dataframe(
-        [{"tier": TIER_LABEL[t], "n": tiers[t], "share": f"{tiers[t] / total:.1%}"}
-         for t in TIERS],
-        hide_index=True, width="stretch",
+        [{"tier": TIER_LABEL[t], "n": tiers[t], "share": f"{tiers[t] / total:.1%}"} for t in TIERS],
+        hide_index=True,
+        width="stretch",
     )
 
 # --- per-repo skew -------------------------------------------------------------------
@@ -146,8 +152,9 @@ rows = []
 for repo in sorted({x.repo for x in subset}):
     items = [x for x in subset if x.repo == repo]
     miss = sum(tier_for(x, text_of(x)) == "not_mentioned" for x in items)
-    rows.append({"repo": repo, "instances": len(items),
-                 "never_mentioned": miss, "rate": miss / len(items)})
+    rows.append(
+        {"repo": repo, "instances": len(items), "never_mentioned": miss, "rate": miss / len(items)}
+    )
 rows.sort(key=lambda r: -r["rate"])
 
 overall = hidden / total
@@ -159,11 +166,9 @@ repo_bars = (
     .mark_bar()
     .encode(
         x=alt.X("repo:N", sort=order, title=None, axis=alt.Axis(labelAngle=-40)),
-        y=alt.Y("rate:Q", title="share never mentioning the gold file",
-                axis=alt.Axis(format="%")),
+        y=alt.Y("rate:Q", title="share never mentioning the gold file", axis=alt.Axis(format="%")),
         color=alt.condition(alt.datum.rate > 0.5, alt.value(RED), alt.value(BLUE)),
-        tooltip=["repo", "instances", "never_mentioned",
-                 alt.Tooltip("rate:Q", format=".1%")],
+        tooltip=["repo", "instances", "never_mentioned", alt.Tooltip("rate:Q", format=".1%")],
     )
 )
 repo_labels = repo_bars.mark_text(dy=-8, fontSize=11).encode(
@@ -183,8 +188,9 @@ st.caption(f"Dashed line: overall rate across the selected repos ({overall:.1%})
 # --- inspect -------------------------------------------------------------------------
 
 st.subheader("Look at one instance")
-tier_filter = st.selectbox("Filter by tier", ["all", *TIERS],
-                           format_func=lambda t: TIER_LABEL.get(t, "all"))
+tier_filter = st.selectbox(
+    "Filter by tier", ["all", *TIERS], format_func=lambda t: TIER_LABEL.get(t, "all")
+)
 pool = [d for d in subset if tier_filter == "all" or tier_for(d, text_of(d)) == tier_filter]
 st.caption(f"{len(pool)} instances match.")
 
