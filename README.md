@@ -107,9 +107,10 @@ pytest -q                       # 16 tests, no network, no dataset needed
 Nothing is hard-coded. The dashboard recomputes every figure from the same functions, and
 the hints toggle and repo filter re-derive the whole report live.
 
-<!-- screenshot placeholder - see docs/images/
 ![dashboard](docs/images/dashboard.png)
--->
+
+*All 300 SWE-bench Lite instances tiered by how the gold file is referenced, with the
+per-repository breakdown that the single aggregate score hides.*
 
 ---
 
