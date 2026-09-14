@@ -1,76 +1,97 @@
-# swebench-localization
+<h1 align="center">swebench-localization</h1>
+<p align="center"><i>Is the answer even in the question?</i></p>
 
-**Over half of SWE-bench Lite never names the file you have to fix.**
+<p align="center">
+  <a href="docs/RESULTS.md">Results</a> &middot;
+  <a href="docs/METHOD.md">Method</a> &middot;
+  <a href="docs/PROBLEMS.md">Problems hit</a> &middot;
+  <a href="docs/LIMITATIONS.md">Limitations</a> &middot;
+  <a href="docs/FUTURE.md">Future work</a> &middot;
+  <a href="#reproduce">Reproduce</a>
+</p>
 
-SWE-bench is reported as one number, but solving an instance requires two different
-things: **find the file**, then **write the patch**. A single score cannot tell you which
-one failed. This repo measures the first half — and finds that for **51.3% of instances
-the gold file is never mentioned in the issue text at all**: not the path, not the
-filename, not even the module name.
-
-A model that fails those has not failed at *reasoning about code*. It has failed at
-*search*. Those are different problems with different fixes, and the benchmark's headline
-number hides the distinction.
+<p align="center">
+  <a href="https://github.com/hammas159/swebench-localization/actions/workflows/ci.yml"><img src="https://github.com/hammas159/swebench-localization/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/hammas159/swebench-localization" alt="license"></a>
+  <img src="https://img.shields.io/badge/python-3.11%2B-blue" alt="python">
+  <img src="https://img.shields.io/badge/tests-16%20passing-brightgreen" alt="tests">
+  <img src="https://img.shields.io/badge/data-SWE--bench%20Lite-orange" alt="data">
+  <img src="https://img.shields.io/badge/downloads%20needed-1.2%20MB-success" alt="size">
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/lint-ruff-261230" alt="ruff"></a>
+</p>
 
 ---
 
-## Measured result
+> ### 51.3% of SWE-bench Lite never names the file you have to fix.
 
-All 300 instances of `princeton-nlp/SWE-bench_Lite` (test split). Every instance is a
-**single-file fix**, so localization is exactly "rank the one correct file first".
+SWE-bench is reported as **one number**. But solving an instance needs two different
+things - **find the file**, then **write the patch** - and a single score cannot say which
+one failed.
 
-### How the gold file is referenced in `problem_statement`
+A model that fails on an issue that never names the file has not failed at *reasoning
+about code*. It has failed at **search**. Those are different problems with different
+fixes.
 
-| Tier | Instances | Share |
-|---|---|---|
-| Full path given verbatim | 51 | **17.0%** |
+---
+
+## The result
+
+All 300 instances. Every one is a single-file fix, so localization is exactly *"rank the
+one correct file first"*.
+
+| How the gold file is referenced | Instances | Share |
+|---|---:|---:|
+| Full path, verbatim | 51 | 17.0% |
 | Filename only | 18 | 6.0% |
 | Module name only | 77 | 25.7% |
-| **Never mentioned** | **154** | **51.3%** |
+| **Never mentioned at all** | **154** | **51.3%** |
 
-### Adding `hints_text` changes the task
+### Two more findings that fell out of it
 
-| Tier | issue only | + hints |
-|---|---|---|
-| Full path | 17.0% | **33.0%** |
-| Never mentioned | **51.3%** | **38.0%** |
+**Hints change the task.** Including `hints_text` drops "never mentioned" from **51.3% to
+38.0%** and doubles the full-path cases. Results using hints are not comparable to results
+without them - and papers do not always say which they used.
 
-`hints_text` is discussion from the issue thread. Including it nearly doubles the share of
-instances where the file is handed to you. **Results that use hints are not comparable to
-results that don't** — and papers do not always say which they used.
+**The aggregate score hides a repo effect.** Difficulty ranges from **astropy 16.7%** to
+**sphinx 87.5%**, and `django/django` alone is 38% of the benchmark.
 
-### The aggregate score hides a repository effect
+&#128202; **[Full tables, per-repo breakdown, and the hints comparison &rarr;](docs/RESULTS.md)**
 
-| Repo | n | never mentioned |
-|---|---|---|
-| sphinx-doc/sphinx | 16 | **87.5%** |
-| psf/requests | 6 | 66.7% |
-| pylint-dev/pylint | 6 | 66.7% |
-| pytest-dev/pytest | 17 | 58.8% |
-| django/django | 114 | 54.4% |
-| sympy/sympy | 77 | 48.1% |
-| scikit-learn/scikit-learn | 23 | 47.8% |
-| pydata/xarray | 5 | 40.0% |
-| pallets/flask | 3 | 33.3% |
-| matplotlib/matplotlib | 23 | 30.4% |
-| mwaskom/seaborn | 4 | 25.0% |
-| astropy/astropy | 6 | **16.7%** |
+---
 
-Localization difficulty ranges from **16.7% to 87.5%** depending on the repository, and
-`django/django` alone is 38% of the benchmark. An aggregate SWE-bench score is therefore
-partly a measurement of **which repositories the benchmark happens to contain**.
+## How it works
+
+```mermaid
+flowchart LR
+    A["SWE-bench Lite<br/>300 instances - 1.2 MB"] --> B["parse gold files<br/>from reference patches"]
+    B --> C{"single-file fix?"}
+    C -->|"300 / 300"| D["match gold path<br/>against issue text"]
+    D --> E["full path 17.0%"]
+    D --> F["filename 6.0%"]
+    D --> G["module name 25.7%"]
+    D --> H["never mentioned 51.3%"]
+    H --> I["retrieval must<br/>INFER the location"]
+
+    style H fill:#dc2626,color:#fff
+    style I fill:#dc2626,color:#fff
+```
+
+Matching is a strict ladder - full path, then basename, then a word-boundary regex on the
+module stem - so each instance lands in exactly one tier and the strongest form present
+wins.
+
+&#128269; **[How the gold files and matching actually work &rarr;](docs/METHOD.md)**
 
 ---
 
 ## Why this matters
 
-`mcp-lab/projects/04_swebench` failed on a 3B model, and the assumption was that a larger
-model would fix it. This reframes that: before attributing failure to model size, establish
-how much of it was ever a *retrieval* problem. For 154 of 300 instances, no amount of code
-reasoning helps until the right file has been found.
+A SWE-bench agent that scores badly is usually assumed to need a bigger model. This says:
+**establish first how much of the failure was ever a retrieval problem.** For 154 of 300
+instances, no amount of code reasoning helps until the right file has been found.
 
-It also makes the pending 3B-vs-14B comparison far more informative — you will be able to
-say **which half** the bigger model improved.
+It also makes a model-size comparison far more informative - you can say **which half** the
+bigger model improved.
 
 ---
 
@@ -78,126 +99,72 @@ say **which half** the bigger model improved.
 
 ```bash
 python src/data.py              # dataset integrity + gold file extraction
-python src/mention_analysis.py  # the numbers in this README
+python src/mention_analysis.py  # every number in this README
 streamlit run ui/app.py         # interactive dashboard
+pytest -q                       # 16 tests, no network, no dataset needed
 ```
 
-Every number above is produced by the code in this repo. The dashboard recomputes them
-live from the same functions — nothing is hard-coded, and the `hints_text` toggle and
-repository filter re-derive the whole report.
+Nothing is hard-coded. The dashboard recomputes every figure from the same functions, and
+the hints toggle and repo filter re-derive the whole report live.
 
-## Method
+<!-- screenshot placeholder - see docs/images/
+![dashboard](docs/images/dashboard.png)
+-->
 
-- **Gold files** are parsed from each instance's reference patch (`+++ b/<path>` lines in
-  the unified diff), not from any model output.
-- **Matching is exact**: full-path substring, then basename substring, then a
-  word-boundary regex on the module stem, so `separable` does not match inside
-  `inseparable`.
-- **Deterministic.** No model, no embeddings, no random seed — the same input always gives
-  the same table.
+---
+
+## Also worth reading
+
+| | |
+|---|---|
+| &#128202; **[Results](docs/RESULTS.md)** | Full tables, per-repo difficulty, hints comparison |
+| &#128269; **[Method](docs/METHOD.md)** | Gold file extraction, the matching ladder, determinism |
+| &#128736; **[Problems hit](docs/PROBLEMS.md)** | A hardcoded path, a broken CI cache, and an overcounting regex |
+| &#9888; **[Limitations](docs/LIMITATIONS.md)** | What Phase 1 does and does not establish |
+| &#128640; **[Future work](docs/FUTURE.md)** | Phase 2 retrieval scoring, BM25 vs embeddings vs LLM |
+
+---
 
 ## Status
 
-✅ **Phase 1 complete** — benchmark discoverability measured.
+&#9989; **Phase 1 complete** - benchmark discoverability measured.
 
-🔴 **Phase 2 not started** — retrieval baselines (BM25 vs embeddings vs LLM-as-locator)
-scored as recall@k against the repository file list. This needs each repo's file tree at
-its `base_commit`, obtainable via the GitHub API trees endpoint (paths only, no file
-contents, so the download is small). *Blocked at time of writing: the API call timed out
-on a saturated connection.*
-
-## Data
-
-`princeton-nlp/SWE-bench_Lite`, test split, 300 instances, read from the local Hugging Face
-cache (1.2 MB — no download required). See `data/sources.json`.
-
-## References
-
-- Jimenez, C. E., Yang, J., Wettig, A., Yao, S., Pei, K., Press, O., & Narasimhan, K.
-  **SWE-bench: Can Language Models Resolve Real-World GitHub Issues?**
-  *ICLR 2024.*
-
-⚠️ Citation written from the standard reference — **confirm against the paper before
-relying on it.**
-
----
-
-## How it works
-
-```mermaid
-flowchart TD
-    A["SWE-bench Lite<br/>300 instances, 1.2 MB<br/>local HF cache"] --> B[src/data.py]
-    B --> C["Parse gold files from<br/>each reference patch"]
-    C --> D{"Every instance<br/>single-file?"}
-    D -->|"yes: 300/300"| E["Localization = rank<br/>the one correct file first"]
-    E --> F[src/mention_analysis.py]
-    F --> G["Match gold path<br/>against the issue text"]
-    G --> H1["full path<br/>17.0%"]
-    G --> H2["filename only<br/>6.0%"]
-    G --> H3["module name only<br/>25.7%"]
-    G --> H4["never mentioned<br/>51.3%"]
-    H1 --> I["ui/app.py<br/>recomputes live"]
-    H2 --> I
-    H3 --> I
-    H4 --> I
-
-    style H4 fill:#dc2626,color:#fff
-    style I fill:#2563eb,color:#fff
-```
-
-The matching is a strict ladder - full path, then basename, then a word-boundary regex
-on the module stem - so each instance lands in exactly one tier and the strongest form
-present always wins.
-
----
-
-## Problems hit while building this
-
-| Problem | What happened | Fix |
-|---|---|---|
-| **Hardcoded cache path** | `data.py` pointed at an absolute `C:\Users\...` path, so a clone worked on exactly one machine | Resolve `HF_HUB_CACHE` then `HF_HOME/hub` then the platform default at call time, with a download fallback and an error naming every path searched |
-| **CI failed on the first push** | `setup-uv` defaults its cache to a `**/uv.lock` glob and **errors out** when nothing matches - not a cache miss, a hard failure. No lock file is committed here | Keyed the cache on `pyproject.toml` |
-| **Lint drift would have broken CI** | `ruff` found 4 errors and 4 unformatted files before the first push | Ran `ruff check --fix` and `ruff format` before pushing; pinned ruff to a minor range so the formatter cannot change under the build |
-| **Substring matching overcounted** | `separable` matched inside `inseparable`, inflating the "module name only" tier | Word-boundary regex, with a test asserting the `inseparable` case |
-| **Phase 2 blocked** | The GitHub trees API call timed out while fetching repo file lists | Recorded as explicitly not-done rather than estimated |
-
----
-
-## Future work
-
-1. **Phase 2 - actual retrieval scoring.** Fetch each repo's file tree at its
-   `base_commit` via the GitHub trees API (paths only, no contents, so the download stays
-   small) and score **BM25 vs embeddings vs LLM-as-locator** as recall@k. **BM25 may well
-   win** - if it does, that is the finding.
-2. **Condition patch validity on localization.** The number that matters is *given the
-   right file was found, how often is the patch right?* - that separates retrieval
-   failure from reasoning failure cleanly.
-3. **Extend to full SWE-bench** (2,294 instances) to check whether Lite's
-   100%-single-file property distorts the picture.
-4. **Correlate difficulty with issue length** - long prose naming no file is likely the
-   hardest tier, and that is testable.
-5. **Report per-repo scores by default** in any SWE-bench evaluation, given the
-   16.7%-87.5% spread measured here.
-
----
-
-## Stack
-
-`Python 3.11+` · `pandas` · `pyarrow` · `Streamlit` · `Altair` · `pytest` · `ruff` ·
-`GitHub Actions` · dataset via `Hugging Face Hub`
-
-## Keywords
-
-SWE-bench · SWE-bench Lite · bug localization · fault localization · code retrieval ·
-LLM benchmark · benchmark evaluation · benchmark contamination · retrieval vs reasoning ·
-automated program repair · issue-to-file mapping · coding agent evaluation ·
-AI software engineering · LLM evaluation harness · reproducible benchmarks · BM25
+&#128308; **Phase 2 not started** - retrieval baselines scored as recall@k. See
+[FUTURE.md](docs/FUTURE.md).
 
 ## Layout
 
 ```
 src/data.py               load from HF cache, parse gold files from patches
 src/mention_analysis.py   discoverability tiers + per-repo breakdown
-ui/app.py                 Streamlit dashboard (recomputes everything live)
-data/sources.json         provenance
+ui/app.py                 Streamlit dashboard - recomputes everything live
+tests/                    16 tests, no network, no dataset
+docs/                     detailed documentation
+data/sources.json         provenance, counts, checksum
 ```
+
+## Stack
+
+`Python 3.11+` &middot; `pandas` &middot; `pyarrow` &middot; `Streamlit` &middot; `Altair`
+&middot; `pytest` &middot; `ruff` &middot; `GitHub Actions` &middot; dataset via
+`Hugging Face Hub`
+
+## Keywords
+
+SWE-bench &middot; SWE-bench Lite &middot; bug localization &middot; fault localization
+&middot; code retrieval &middot; LLM benchmark &middot; benchmark evaluation &middot;
+benchmark contamination &middot; retrieval vs reasoning &middot; automated program repair
+&middot; issue-to-file mapping &middot; coding agent evaluation &middot; AI software
+engineering &middot; LLM evaluation harness &middot; reproducible benchmarks &middot; BM25
+
+## References
+
+Jimenez, C. E., Yang, J., Wettig, A., Yao, S., Pei, K., Press, O., & Narasimhan, K.
+**SWE-bench: Can Language Models Resolve Real-World GitHub Issues?** *ICLR 2024.*
+
+&#9888; Citation written from the standard reference - confirm against the paper before
+relying on it.
+
+## Licence
+
+MIT - see [LICENSE](LICENSE).
