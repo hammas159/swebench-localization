@@ -1,0 +1,88 @@
+{
+  "datasets": [
+    {
+      "name": "SWE-bench Lite",
+      "hf_id": "princeton-nlp/SWE-bench_Lite",
+      "split": "test",
+      "instances": 300,
+      "size_mb": 1.2,
+      "source": "local Hugging Face cache - no download required",
+      "cache_path": "C:\\Users\\dell\\.cache\\huggingface\\hub\\datasets--princeton-nlp--SWE-bench_Lite",
+      "snapshot": "6ec7bb89b9342f664a54a6e0a6ea6501d3437cc2",
+      "verified_on": "2026-09-14",
+      "verified_by": "src/data.py",
+      "columns": [
+        "repo", "instance_id", "base_commit", "patch", "test_patch",
+        "problem_statement", "hints_text", "created_at", "version",
+        "FAIL_TO_PASS", "PASS_TO_PASS", "environment_setup_commit"
+      ],
+      "integrity_checks": {
+        "instances_with_no_gold_file": 0,
+        "single_file_fixes": 300,
+        "single_file_fix_rate": 1.0,
+        "files_per_fix": {"min": 1, "max": 1, "mean": 1.0},
+        "repos": 12,
+        "problem_statement_chars": {"min": 230, "median": 1046, "max": 24770}
+      },
+      "repo_distribution": {
+        "django/django": 114,
+        "sympy/sympy": 77,
+        "matplotlib/matplotlib": 23,
+        "scikit-learn/scikit-learn": 23,
+        "pytest-dev/pytest": 17,
+        "sphinx-doc/sphinx": 16,
+        "astropy/astropy": 6,
+        "psf/requests": 6,
+        "pylint-dev/pylint": 6,
+        "pydata/xarray": 5,
+        "mwaskom/seaborn": 4,
+        "pallets/flask": 3
+      },
+      "gold_file_extraction": {
+        "method": "parse '+++ b/<path>' lines from the reference patch (unified diff post-image)",
+        "note": "/dev/null entries dropped; order preserved; de-duplicated"
+      },
+      "paper": {
+        "authors": "Jimenez, C. E., Yang, J., Wettig, A., Yao, S., Pei, K., Press, O., & Narasimhan, K.",
+        "title": "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?",
+        "venue": "ICLR",
+        "year": 2024,
+        "verified": false,
+        "note": "Written from the standard reference. Confirm venue and author list against the paper before relying on it."
+      }
+    }
+  ],
+  "results": {
+    "measured_on": "2026-09-14",
+    "produced_by": "src/mention_analysis.py",
+    "discoverability_problem_statement_only": {
+      "full_path": 51,
+      "basename": 18,
+      "stem_only": 77,
+      "not_mentioned": 154,
+      "not_mentioned_rate": 0.5133333333333333
+    },
+    "discoverability_with_hints": {
+      "full_path": 99,
+      "basename": 19,
+      "stem_only": 68,
+      "not_mentioned": 114,
+      "not_mentioned_rate": 0.38
+    },
+    "not_mentioned_rate_by_repo": {
+      "sphinx-doc/sphinx": 0.875,
+      "psf/requests": 0.6666666666666666,
+      "pylint-dev/pylint": 0.6666666666666666,
+      "pytest-dev/pytest": 0.5882352941176471,
+      "django/django": 0.543859649122807,
+      "sympy/sympy": 0.4805194805194805,
+      "scikit-learn/scikit-learn": 0.4782608695652174,
+      "pydata/xarray": 0.4,
+      "pallets/flask": 0.3333333333333333,
+      "matplotlib/matplotlib": 0.30434782608695654,
+      "mwaskom/seaborn": 0.25,
+      "astropy/astropy": 0.16666666666666666
+    },
+    "method": "Deterministic string matching only - no model, no embeddings, no random seed. Full-path substring, then basename substring, then word-boundary regex on the module stem."
+  }
+}
