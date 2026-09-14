@@ -120,6 +120,79 @@ cache (1.2 MB — no download required). See `data/sources.json`.
 ⚠️ Citation written from the standard reference — **confirm against the paper before
 relying on it.**
 
+---
+
+## How it works
+
+```mermaid
+flowchart TD
+    A["SWE-bench Lite<br/>300 instances, 1.2 MB<br/>local HF cache"] --> B[src/data.py]
+    B --> C["Parse gold files from<br/>each reference patch"]
+    C --> D{"Every instance<br/>single-file?"}
+    D -->|"yes: 300/300"| E["Localization = rank<br/>the one correct file first"]
+    E --> F[src/mention_analysis.py]
+    F --> G["Match gold path<br/>against the issue text"]
+    G --> H1["full path<br/>17.0%"]
+    G --> H2["filename only<br/>6.0%"]
+    G --> H3["module name only<br/>25.7%"]
+    G --> H4["never mentioned<br/>51.3%"]
+    H1 --> I["ui/app.py<br/>recomputes live"]
+    H2 --> I
+    H3 --> I
+    H4 --> I
+
+    style H4 fill:#dc2626,color:#fff
+    style I fill:#2563eb,color:#fff
+```
+
+The matching is a strict ladder - full path, then basename, then a word-boundary regex
+on the module stem - so each instance lands in exactly one tier and the strongest form
+present always wins.
+
+---
+
+## Problems hit while building this
+
+| Problem | What happened | Fix |
+|---|---|---|
+| **Hardcoded cache path** | `data.py` pointed at an absolute `C:\Users\...` path, so a clone worked on exactly one machine | Resolve `HF_HUB_CACHE` then `HF_HOME/hub` then the platform default at call time, with a download fallback and an error naming every path searched |
+| **CI failed on the first push** | `setup-uv` defaults its cache to a `**/uv.lock` glob and **errors out** when nothing matches - not a cache miss, a hard failure. No lock file is committed here | Keyed the cache on `pyproject.toml` |
+| **Lint drift would have broken CI** | `ruff` found 4 errors and 4 unformatted files before the first push | Ran `ruff check --fix` and `ruff format` before pushing; pinned ruff to a minor range so the formatter cannot change under the build |
+| **Substring matching overcounted** | `separable` matched inside `inseparable`, inflating the "module name only" tier | Word-boundary regex, with a test asserting the `inseparable` case |
+| **Phase 2 blocked** | The GitHub trees API call timed out while fetching repo file lists | Recorded as explicitly not-done rather than estimated |
+
+---
+
+## Future work
+
+1. **Phase 2 - actual retrieval scoring.** Fetch each repo's file tree at its
+   `base_commit` via the GitHub trees API (paths only, no contents, so the download stays
+   small) and score **BM25 vs embeddings vs LLM-as-locator** as recall@k. **BM25 may well
+   win** - if it does, that is the finding.
+2. **Condition patch validity on localization.** The number that matters is *given the
+   right file was found, how often is the patch right?* - that separates retrieval
+   failure from reasoning failure cleanly.
+3. **Extend to full SWE-bench** (2,294 instances) to check whether Lite's
+   100%-single-file property distorts the picture.
+4. **Correlate difficulty with issue length** - long prose naming no file is likely the
+   hardest tier, and that is testable.
+5. **Report per-repo scores by default** in any SWE-bench evaluation, given the
+   16.7%-87.5% spread measured here.
+
+---
+
+## Stack
+
+`Python 3.11+` · `pandas` · `pyarrow` · `Streamlit` · `Altair` · `pytest` · `ruff` ·
+`GitHub Actions` · dataset via `Hugging Face Hub`
+
+## Keywords
+
+SWE-bench · SWE-bench Lite · bug localization · fault localization · code retrieval ·
+LLM benchmark · benchmark evaluation · benchmark contamination · retrieval vs reasoning ·
+automated program repair · issue-to-file mapping · coding agent evaluation ·
+AI software engineering · LLM evaluation harness · reproducible benchmarks · BM25
+
 ## Layout
 
 ```
