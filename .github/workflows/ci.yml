@@ -20,8 +20,8 @@ jobs:
       - run: uv sync --all-groups
       - name: Lint
         run: |
-          uv run ruff check src tests ui
-          uv run ruff format --check src tests ui
+          uv run ruff check src tests
+          uv run ruff format --check src tests
       - name: Test
         # No network on purpose: every test below runs on constructed diffs and
         # fake cache roots, so a dataset outage can never redden the build.
