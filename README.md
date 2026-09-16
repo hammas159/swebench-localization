@@ -100,17 +100,24 @@ bigger model improved.
 ```bash
 python src/data.py              # dataset integrity + gold file extraction
 python src/mention_analysis.py  # every number in this README
-streamlit run ui/app.py         # interactive dashboard
 pytest -q                       # 16 tests, no network, no dataset needed
 ```
 
-Nothing is hard-coded. The dashboard recomputes every figure from the same functions, and
-the hints toggle and repo filter re-derive the whole report live.
+Nothing is hard-coded. Every figure is recomputed from the same functions.
 
-![dashboard](docs/images/dashboard.png)
+---
 
-*All 300 SWE-bench Lite instances tiered by how the gold file is referenced, with the
-per-repository breakdown that the single aggregate score hides.*
+## Input
+
+![input](docs/images/input.png)
+
+## Output
+
+![output](docs/images/output.png)
+
+*Half the benchmark is a retrieval problem wearing a reasoning problem's clothes. When the
+issue never names the file, a single pass@1 score cannot tell you whether the model reasoned
+badly or was simply shown the wrong file — and a bigger model fed the wrong file still fails.*
 
 ---
 
@@ -138,7 +145,6 @@ per-repository breakdown that the single aggregate score hides.*
 ```
 src/data.py               load from HF cache, parse gold files from patches
 src/mention_analysis.py   discoverability tiers + per-repo breakdown
-ui/app.py                 Streamlit dashboard - recomputes everything live
 tests/                    16 tests, no network, no dataset
 docs/                     detailed documentation
 data/sources.json         provenance, counts, checksum
@@ -146,7 +152,7 @@ data/sources.json         provenance, counts, checksum
 
 ## Stack
 
-`Python 3.11+` &middot; `pandas` &middot; `pyarrow` &middot; `Streamlit` &middot; `Altair`
+`Python 3.11+` &middot; `pandas` &middot; `pyarrow`
 &middot; `pytest` &middot; `ruff` &middot; `GitHub Actions` &middot; dataset via
 `Hugging Face Hub`
 
